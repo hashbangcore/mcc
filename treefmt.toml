@@ -1,0 +1,6 @@
+[formatter.rust]
+command = "rustfmt"
+options = []
+includes = [ "*.rs" ]
+excludes = []
+priority = 0
