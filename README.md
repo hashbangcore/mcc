@@ -1,0 +1,10 @@
+# Modular Coordination Core
+
+Command-line assistant written in Rust.
+
+This is an experimental project created while learning Rust.
+Its purpose is to explore basic integration with large language models (LLMs)
+from a terminal environment.
+
+The interface, behavior, and internal structure are incomplete and subject to change.
+
