@@ -28,12 +28,12 @@ struct ResponseMessage {
     content: String,
 }
 
-pub struct Codestral {
+pub struct Model {
     http: Client,
     api_key: String,
 }
 
-impl Codestral {
+impl Model {
     pub fn new() -> Self {
         let key =
             std::env::var("CODE_API_KEY").expect("Variable de entorno CODE_API_KEY no configurada");

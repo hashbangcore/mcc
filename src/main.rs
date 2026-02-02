@@ -20,7 +20,7 @@ enum Commands {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let ai = core::Codestral::new();
+    let ai = core::Model::new();
     let args = Cli::parse();
 
     execute(&ai, args).await?;
@@ -28,7 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn execute(ai: &core::Codestral, args: Cli) -> Result<(), Box<dyn std::error::Error>> {
+async fn execute(ai: &core::Model, args: Cli) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
         Some(Commands::Commit { hint }) => generate_commit(ai, hint.as_deref()).await?,
 
@@ -47,18 +47,21 @@ async fn execute(ai: &core::Codestral, args: Cli) -> Result<(), Box<dyn std::err
 }
 
 async fn generate_commit(
-    ai: &core::Codestral,
+    ai: &core::Model,
     hint: Option<&str>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let prompt = task::commit::prompt::generate(hint);
 
     let result = ai.complete(&prompt).await?;
+    println!("# PROMPT");
+    println!("{}", prompt);
+    println!("# RESPONSE");
     println!("{}", result);
 
     Ok(())
 }
 
-async fn send_chat(ai: &core::Codestral, mensaje: &str) -> Result<(), Box<dyn std::error::Error>> {
+async fn send_chat(ai: &core::Model, mensaje: &str) -> Result<(), Box<dyn std::error::Error>> {
     let respuesta = ai.complete(mensaje).await?;
     println!("{}", respuesta);
     Ok(())

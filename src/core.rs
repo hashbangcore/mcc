@@ -1,3 +1,3 @@
-mod codestral;
+mod router;
 
-pub use codestral::Codestral;
+pub use router::Model;
