@@ -1,4 +1,4 @@
-# Modular Coordination Core
+# Natu
 
 Command-line assistant written in Rust.
 

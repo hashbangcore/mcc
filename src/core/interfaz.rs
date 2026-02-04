@@ -2,7 +2,7 @@ use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "rave",
+    name = "natu",
     author,
     version,
     about = "CLI for interacting with language models",
