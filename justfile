@@ -8,3 +8,9 @@ run:
 
 install:
     cargo install --path . --bin netero-dev
+
+sync:
+    git switch main
+    git merge development
+    git switch development
+    git push --all
