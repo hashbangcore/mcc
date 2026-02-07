@@ -1,20 +1,14 @@
 mod core;
 mod task;
+mod utils;
 
-use chrono::Local;
 use clap::Parser;
 use core::interfaz;
 use std::env;
-use std::io::{self, IsTerminal, Read};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut stdin = String::new();
-
-    if !io::stdin().is_terminal() {
-        io::stdin().read_to_string(&mut stdin).unwrap();
-    }
-
+    let stdin = utils::get_stdin();
     let args = interfaz::Cli::parse();
     let ai = core::Service::new(Some(&args.provider));
 
@@ -66,14 +60,6 @@ async fn generate_commit(
     Ok(())
 }
 
-fn capitalize(s: &str) -> String {
-    s.get(0..1).unwrap_or("").to_uppercase() + s.get(1..).unwrap_or("")
-}
-
-fn current_datetime() -> String {
-    Local::now().format("%Y-%m-%d %H:%M:%S").to_string()
-}
-
 async fn send_chat(
     ctx: &core::CliContext,
     request: &str,
@@ -81,8 +67,8 @@ async fn send_chat(
     let user = env::var("USER").unwrap_or_else(|_| "user".to_string());
     let preamble = format!(
         "LLM name: Netero\nUser name: {}\nDate and hour: {}\n",
-        capitalize(&user),
-        current_datetime()
+        utils::capitalize(&user),
+        utils::current_datetime()
     );
 
     let prompt = if ctx.stdin.trim().is_empty() {
