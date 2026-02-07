@@ -3,6 +3,9 @@ set unstable := true
 
 default: run
 
+commit hint="":
+  netero commit "{{ hint }}" | git commit -F - --edit
+
 run:
     clear && RUSTFLAGS="-Awarnings" cargo run --bin netero-dev --quiet -- -v -p ollama  "escribe un poema"
 
