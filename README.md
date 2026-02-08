@@ -2,6 +2,8 @@
 
 A command-line LLM assistant written in Rust, designed for terminal-centric workflows.
 
+**Also available in Spanish:** [Ver README en español](docs/readme.es.md)
+
 ## Project status
 
 Netero is experimental software. Features are incomplete and subject to change.
@@ -71,7 +73,7 @@ netero "Explain the difference between hard links and symbolic links"
 ### Using stdin for longer prompts
 
 ```sh
-cat README.md | netero "Summarize this project documentation"
+cat README.md | netero "Summarize the project README"
 ```
 
 ### Generate a Git commit message
