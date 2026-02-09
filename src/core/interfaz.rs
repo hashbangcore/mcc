@@ -40,4 +40,7 @@ pub enum Commands {
         /// Prompt provided via the command line
         input: String,
     },
+
+    /// Generate shell completion
+    Completion { shell: clap_complete::Shell },
 }

@@ -2,11 +2,13 @@ mod core;
 mod tasks;
 mod utils;
 
+use clap::CommandFactory;
 use clap::Parser;
+use clap_complete::generate;
 use core::interfaz;
+use tasks::chat;
 use tasks::commit;
 use tasks::message;
-use tasks::simple_chat;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -33,12 +35,16 @@ async fn execute(
     match args.command {
         Some(interfaz::Commands::Commit { hint }) => commit::generate(ctx, hint.as_deref()).await?,
         Some(interfaz::Commands::Prompt { input }) => message::generate(ctx, &input).await?,
-        Some(interfaz::Commands::Chat) => simple_chat::generate(ctx).await,
+        Some(interfaz::Commands::Chat) => chat::generate(ctx).await,
+        Some(interfaz::Commands::Completion { shell }) => {
+            let mut cmd = interfaz::Cli::command();
+            generate(shell, &mut cmd, "netero", &mut std::io::stdout());
+        }
         None => {
             if let Some(prompt) = args.prompt {
                 message::generate(ctx, &prompt).await?;
             } else {
-                eprintln!("Error: a message is required for chat or commit");
+                chat::generate(ctx).await;
             }
         }
     }
