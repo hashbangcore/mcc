@@ -4,21 +4,25 @@ use rustyline::Editor;
 use rustyline::error::ReadlineError;
 use rustyline::history::DefaultHistory;
 
-fn crete_prompt(history: &str, user_input: &str) -> String {
+fn create_prompt(history: &str, user_input: &str) -> String {
     format!(
         "
 LLM: Netero
+LLM ROL: Terminal tool
 USER: {}
-USER_LANG: ES
+USER LANG: ES
+DISTRO: NixOS
 DATETIME: {}
 
 :: INSTRUCTION (SYSTEM) ::
 
-- Do not use emojis
-- Respond with between 5 and 15 lines at most
-- Keep answers short, avoid long explanations
-- No include farewell messages in any response
-- Respond in the same language as the user
+- Do not take any proactive actions, 
+  including polite questions, unless 
+  explicitly requested by the user.
+- Do not include farewell messages in any response.
+- Do not use emojis.
+- Keep responses brief (5-20 lines maximum),
+  keep answers concise, avoid long explanations.
 
 :: END INSTRUCTION (SYSTEM)::
 
@@ -61,6 +65,7 @@ pub async fn connect(service: &core::Service, args: &core::interfaz::Cli) {
     println!("::: {} :::\n", provider);
 
     loop {
+        println!("\x1b[36m");
         let readline = rl.readline("➜ ");
         let user_input = match readline {
             Ok(line) => {
@@ -73,16 +78,17 @@ pub async fn connect(service: &core::Service, args: &core::interfaz::Cli) {
                 break;
             }
         };
+        println!("\x1b[0m");
 
         if user_input.is_empty() {
             continue;
         }
 
         let dialog = history.join("\n");
-        let prompt = crete_prompt(&dialog, &user_input);
+        let prompt = create_prompt(&dialog, &user_input);
 
         if args.verbose {
-            println!("{}", prompt);
+            println!("\x1b[32m{}\x1b[0m", prompt);
         }
 
         match service.complete(&prompt).await {
