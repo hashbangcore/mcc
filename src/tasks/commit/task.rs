@@ -30,6 +30,7 @@ fn staged_changes() -> String {
     // TODO: implementar la funcionalidad de larry
     let output = Command::new("larry")
         .args([
+            "cat $(find . -type f -name 'README.md' -not -path '*/target/*' -not -path '*/docs/*' | xargs -I {} realpath {})",
             "git branch -v",
             "git remote -v",
             "git log --stat -1",
