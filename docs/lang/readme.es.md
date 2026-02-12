@@ -10,17 +10,25 @@ Netero es un software experimental. Las características están incompletas y es
 
 ## Variables de entorno
 
-Netero requiere variables de entorno específicas del proveedor para ser configuradas.
+Netero puede configurarse dinámicamente mediante variables de entorno.
+
+Proveedor por defecto:
 
 * `CODE_API_KEY`
-  Clave API utilizada para el proveedor `codestral`.
+  Clave API utilizada para el proveedor `codestral` por defecto.
 
-* `OPENROUTER_API_KEY`
-  Clave API utilizada para el proveedor `openrouter`.
+Proveedor personalizado (compatible con OpenAI):
 
-El proveedor `ollama` puede ser utilizado **localmente** sin una clave API.
+* `NETERO_URL`
+  URL completa del endpoint de chat completions.
 
-Por el momento, estas son las únicas opciones de configuración soportadas. El manejo de proveedores se espera que se vuelva más flexible en el futuro.
+* `NETERO_MODEL`
+  Nombre del modelo enviado al proveedor.
+
+* `NETERO_API_KEY`
+  Clave API opcional para el proveedor personalizado.
+
+`NETERO_URL` y `NETERO_MODEL` deben configurarse juntos. Si ambos están definidos, reemplazan al proveedor por defecto.
 
 ## Uso
 
@@ -49,9 +57,6 @@ Si se proporciona entrada a través de `stdin`, se utilizará como contexto adic
   Prompt pasado al modelo de lenguaje
 
 ### Opciones
-
-* `-p, --provider <PROVIDER>`
-  Proveedor de modelos de lenguaje (por defecto: `codestral`)
 
 * `-v, --verbose`
   Habilita la salida detallada
@@ -82,10 +87,13 @@ cat README.md | netero "Resume el README del proyecto"
 netero commit | git commit -F - --edit
 ```
 
-### Usando un proveedor diferente
+### Usando un proveedor personalizado
 
 ```sh
-netero -p openrouter "Explica cómo systemd gestiona los servicios"
+export NETERO_URL="https://api.example.com/v1/chat/completions"
+export NETERO_MODEL="mi-modelo"
+export NETERO_API_KEY="tu-api-key"
+netero "Explica cómo systemd gestiona los servicios"
 ```
 
 ### Salida detallada

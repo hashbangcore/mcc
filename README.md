@@ -10,17 +10,25 @@ Netero is experimental software. Features are incomplete and subject to change.
 
 ## Environment variables
 
-Netero requires provider-specific environment variables to be configured.
+Netero can be configured dynamically via environment variables.
+
+Default provider:
 
 * `CODE_API_KEY`
-  API key used for the `codestral` provider.
+  API key used for the default `codestral` provider.
 
-* `OPENROUTER_API_KEY`
-  API key used for the `openrouter` provider.
+Custom provider (OpenAI-compatible):
 
-The `ollama` provider can be used **locally** without an API key.
+* `NETERO_URL`
+  Full chat completions endpoint URL.
 
-At the moment, these are the only supported configuration options. Provider handling is expected to become more flexible in the future.
+* `NETERO_MODEL`
+  Model name sent to the provider.
+
+* `NETERO_API_KEY`
+  Optional API key for the custom provider.
+
+`NETERO_URL` and `NETERO_MODEL` must be set together. If both are set, they override the default provider.
 
 ## Usage
 
@@ -49,9 +57,6 @@ If input is provided via `stdin`, it will be used as additional context for the 
   Prompt passed to the language model
 
 ### Options
-
-* `-p, --provider <PROVIDER>`
-  Language model provider (default: `codestral`)
 
 * `-v, --verbose`
   Enable verbose output
@@ -82,10 +87,13 @@ cat README.md | netero "Summarize the project README"
 netero commit | git commit -F - --edit
 ```
 
-### Using a different provider
+### Using a custom provider
 
 ```sh
-netero -p openrouter "Explain how systemd manages services"
+export NETERO_URL="https://api.example.com/v1/chat/completions"
+export NETERO_MODEL="my-model"
+export NETERO_API_KEY="your-api-key"
+netero "Explain how systemd manages services"
 ```
 
 ### Verbose output
