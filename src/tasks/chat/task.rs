@@ -11,27 +11,42 @@ use rustyline::history::DefaultHistory;
 use rustyline::validate::Validator;
 use std::process::Command;
 
+use super::helpers::create_prompt;
+use super::helpers::eval_expr;
+use super::helpers::extract_inline_commands;
+use super::helpers::format_eval_error;
+use super::helpers::strip_inline_commands;
+
 #[derive(Clone)]
+/// Provides command name completions for slash-prefixed commands in the prompt.
 struct CommandCompleter {
+    /// The set of slash commands available for completion.
     commands: Vec<&'static str>,
 }
 
+/// Enables rustyline helper integration for slash command completion.
 impl Helper for CommandCompleter {}
+/// Disables hints while still fulfilling the rustyline helper contract.
 impl Hinter for CommandCompleter {
     type Hint = String;
 
+    /// Returns no hint so user input remains unobstructed.
     fn hint(&self, _line: &str, _pos: usize, _ctx: &Context<'_>) -> Option<String> {
         None
     }
 }
 
+/// Disables highlighting while still fulfilling the rustyline helper contract.
 impl Highlighter for CommandCompleter {}
 
+/// Disables validation while still fulfilling the rustyline helper contract.
 impl Validator for CommandCompleter {}
 
+/// Implements slash command completion for rustyline.
 impl Completer for CommandCompleter {
     type Candidate = Pair;
 
+    /// Returns completions when the current token starts with `/`.
     fn complete(
         &self,
         line: &str,
@@ -62,135 +77,7 @@ impl Completer for CommandCompleter {
     }
 }
 
-fn create_prompt(history: &str, user_input: &str, command_output: Option<&str>) -> String {
-    let command_section = match command_output {
-        Some(output) => format!(
-            "
-:: COMMAND OUTPUT (SYSTEM) ::
-
-{}
-
-:: END COMMAND OUTPUT (SYSTEM) ::
-",
-            output
-        ),
-        None => String::new(),
-    };
-
-    format!(
-        "
-LLM ROL: Conversational terminal assistant
-USERNAME: {}
-DATETIME: {}
-
-
-:: INSTRUCTION (SYSTEM) ::
-
-- Keep responses concise: 5-20 lines maximum.
-- Do not use emojis or decorations.
-- Always prioritize the latest user message over the HISTORICAL CHAT. 
-- The latest message may be completely unrelated to previous messages. 
-- Do not assume continuity or context from 
-  the history unless the user explicitly refers to it.
-
-:: END INSTRUCTION (SYSTEM) ::
-
-:: HISTORIAL CHAT (SYSTEM) ::
-
-{}
-
-:: END HISTORIAL CHAT (SYSTEM) ::
-
-{}
-
-:: USER MESSAGE ::
-
-{}
-
-:: END USER MESSAGE ::
-",
-        utils::get_user(),
-        utils::current_datetime(),
-        history,
-        command_section,
-        user_input
-    )
-}
-
-fn extract_inline_commands(input: &str) -> Vec<String> {
-    let bytes = input.as_bytes();
-    let mut commands = Vec::new();
-    let mut i = 0;
-
-    while i + 1 < bytes.len() {
-        if bytes[i] == b'$' && bytes[i + 1] == b'(' {
-            let mut j = i + 2;
-            let mut depth = 1;
-
-            while j < bytes.len() {
-                if bytes[j] == b'(' {
-                    depth += 1;
-                } else if bytes[j] == b')' {
-                    depth -= 1;
-                    if depth == 0 {
-                        break;
-                    }
-                }
-                j += 1;
-            }
-
-            if depth == 0 {
-                let cmd = input[i + 2..j].trim().to_string();
-                if !cmd.is_empty() {
-                    commands.push(cmd);
-                }
-                i = j + 1;
-                continue;
-            } else {
-                break;
-            }
-        }
-        i += 1;
-    }
-
-    commands
-}
-
-fn strip_inline_commands(input: &str) -> String {
-    let bytes = input.as_bytes();
-    let mut output = String::with_capacity(bytes.len());
-    let mut i = 0;
-
-    while i < bytes.len() {
-        if i + 1 < bytes.len() && bytes[i] == b'$' && bytes[i + 1] == b'(' {
-            let mut j = i + 2;
-            let mut depth = 1;
-
-            while j < bytes.len() {
-                if bytes[j] == b'(' {
-                    depth += 1;
-                } else if bytes[j] == b')' {
-                    depth -= 1;
-                    if depth == 0 {
-                        break;
-                    }
-                }
-                j += 1;
-            }
-
-            if depth == 0 {
-                i = j + 1;
-                continue;
-            }
-        }
-
-        output.push(bytes[i] as char);
-        i += 1;
-    }
-
-    output.trim().to_string()
-}
-
+/// Executes inline shell commands and returns a formatted output section, if any.
 fn run_inline_commands(user_input: &str) -> Option<String> {
     let commands = extract_inline_commands(user_input);
     if commands.is_empty() {
@@ -246,154 +133,7 @@ fn run_inline_commands(user_input: &str) -> Option<String> {
     Some(entries.join("\n\n"))
 }
 
-#[derive(Debug)]
-enum EvalError {
-    Empty,
-    InvalidToken(char),
-    MismatchedParens,
-    DivisionByZero,
-}
-
-fn format_eval_error(err: EvalError) -> String {
-    match err {
-        EvalError::Empty => "expresión vacía".to_string(),
-        EvalError::InvalidToken(ch) => format!("token inválido: '{}'", ch),
-        EvalError::MismatchedParens => "paréntesis desbalanceados".to_string(),
-        EvalError::DivisionByZero => "división por cero".to_string(),
-    }
-}
-
-fn eval_expr(input: &str) -> Result<i64, EvalError> {
-    let mut parser = Parser::new(input);
-    let value = parser.parse_expr()?;
-    parser.skip_ws();
-    if parser.peek().is_some() {
-        return Err(EvalError::InvalidToken(parser.peek().unwrap()));
-    }
-    Ok(value)
-}
-
-struct Parser<'a> {
-    iter: std::str::Chars<'a>,
-    lookahead: Option<char>,
-}
-
-impl<'a> Parser<'a> {
-    fn new(input: &'a str) -> Self {
-        let mut iter = input.chars();
-        let lookahead = iter.next();
-        Self { iter, lookahead }
-    }
-
-    fn peek(&self) -> Option<char> {
-        self.lookahead
-    }
-
-    fn next(&mut self) -> Option<char> {
-        let current = self.lookahead;
-        self.lookahead = self.iter.next();
-        current
-    }
-
-    fn skip_ws(&mut self) {
-        while matches!(self.peek(), Some(ch) if ch.is_whitespace()) {
-            self.next();
-        }
-    }
-
-    fn parse_expr(&mut self) -> Result<i64, EvalError> {
-        self.skip_ws();
-        let mut value = self.parse_term()?;
-        loop {
-            self.skip_ws();
-            match self.peek() {
-                Some('+') => {
-                    self.next();
-                    value = value + self.parse_term()?;
-                }
-                Some('-') => {
-                    self.next();
-                    value = value - self.parse_term()?;
-                }
-                _ => break,
-            }
-        }
-        Ok(value)
-    }
-
-    fn parse_term(&mut self) -> Result<i64, EvalError> {
-        self.skip_ws();
-        let mut value = self.parse_factor()?;
-        loop {
-            self.skip_ws();
-            match self.peek() {
-                Some('*') => {
-                    self.next();
-                    value = value * self.parse_factor()?;
-                }
-                Some('/') => {
-                    self.next();
-                    let rhs = self.parse_factor()?;
-                    if rhs == 0 {
-                        return Err(EvalError::DivisionByZero);
-                    }
-                    value = value / rhs;
-                }
-                Some('%') => {
-                    self.next();
-                    let rhs = self.parse_factor()?;
-                    if rhs == 0 {
-                        return Err(EvalError::DivisionByZero);
-                    }
-                    value = value % rhs;
-                }
-                _ => break,
-            }
-        }
-        Ok(value)
-    }
-
-    fn parse_factor(&mut self) -> Result<i64, EvalError> {
-        self.skip_ws();
-        match self.peek() {
-            Some('-') => {
-                self.next();
-                Ok(-self.parse_factor()?)
-            }
-            Some('(') => {
-                self.next();
-                let value = self.parse_expr()?;
-                self.skip_ws();
-                match self.next() {
-                    Some(')') => Ok(value),
-                    _ => Err(EvalError::MismatchedParens),
-                }
-            }
-            Some(ch) if ch.is_ascii_digit() => self.parse_number(),
-            Some(ch) => Err(EvalError::InvalidToken(ch)),
-            None => Err(EvalError::Empty),
-        }
-    }
-
-    fn parse_number(&mut self) -> Result<i64, EvalError> {
-        self.skip_ws();
-        let mut buf = String::new();
-        while let Some(ch) = self.peek() {
-            if ch.is_ascii_digit() {
-                buf.push(ch);
-                self.next();
-            } else {
-                break;
-            }
-        }
-        if buf.is_empty() {
-            return Err(EvalError::Empty);
-        }
-        buf.parse::<i64>()
-            .map_err(|_| EvalError::InvalidToken(buf.chars().next().unwrap()))
-    }
-}
-
+/// Starts the interactive chat session and handles all supported commands.
 pub async fn connect(service: &core::Service, args: &core::Cli) {
     let mut history: Vec<String> = Vec::new();
     let mut rl = Editor::<CommandCompleter, DefaultHistory>::new()
@@ -491,7 +231,13 @@ Do not interpret lang:lang as literal text.\n\nTEXT:\n{}",
         let dialog = history.join("\n");
         let command_output = run_inline_commands(&user_input);
         let cleaned_input = strip_inline_commands(&user_input);
-        let prompt = create_prompt(&dialog, &cleaned_input, command_output.as_deref());
+        let prompt = create_prompt(
+            &utils::get_user(),
+            &utils::current_datetime(),
+            &dialog,
+            &cleaned_input,
+            command_output.as_deref(),
+        );
 
         if args.verbose {
             println!("\x1b[32m{}\x1b[0m", prompt);
