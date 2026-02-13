@@ -1,26 +1,26 @@
 # Netero
 
-A command-line LLM assistant written in Rust, designed for terminal-centric workflows.
+A Rust CLI LLM assistant made for terminal-first workflows, aimed at advanced users.
 
-**Also available in Spanish:** [Ver README en español](docs/lang/readme.es.md)
+**Also in Spanish:** [Ver README en español](docs/lang/readme.es.md)
 
 ## Project status
 
-Netero is experimental software. Features are incomplete and subject to change.
+Experimental. Features are incomplete and may change.
 
 ## Environment variables
 
-Netero can be configured dynamically via environment variables.
+Configure via environment variables.
 
-Default provider:
+Default provider (`codestral`):
 
 * `CODE_API_KEY`
-  API key used for the default `codestral` provider.
+  API key for the default provider.
 
 Custom provider (OpenAI-compatible):
 
 * `NETERO_URL`
-  Full chat completions endpoint URL.
+  Chat completions endpoint URL.
 
 * `NETERO_MODEL`
   Model name sent to the provider.
@@ -32,13 +32,14 @@ Custom provider (OpenAI-compatible):
 
 ## Usage
 
-CLI for interacting with language models.
+CLI to interact with language models.
 
 ```
 Usage: netero [OPTIONS] [PROMPT] [COMMAND]
 ```
 
-If input is provided via `stdin`, it will be used as additional context for the prompt.
+If input is provided via `stdin`, it is added as extra context.
+Expressions like `$(...)` are executed by your shell and their output is appended to the prompt.
 
 ### Commands
 
@@ -48,13 +49,30 @@ If input is provided via `stdin`, it will be used as additional context for the 
 * `commit`
   Generate a commit message from staged changes
 
+* `completion`
+  Generate shell completion scripts
+
 * `prompt`
-  Send a prompt to the language model and print the response
+  Send a prompt and print the response
+
+#### Chat commands
+
+* `/help`
+  Show help
+
+* `/clean`
+  Clear chat history
+
+* `/trans`
+  Translate text
+
+* `/eval`
+  Evaluate a arithmetic expression
 
 ### Arguments
 
 * `[PROMPT]`
-  Prompt passed to the language model
+  Prompt sent to the model
 
 ### Options
 
@@ -69,15 +87,19 @@ If input is provided via `stdin`, it will be used as additional context for the 
 
 ## Examples
 
-### Basic prompt
+### Prompts with and without quotes
 
 ```sh
+netero Explain the difference between hard links and symbolic links
 netero "Explain the difference between hard links and symbolic links"
+netero -v Explain the Rust ownership model
+netero -v "Explain the Rust ownership model"
 ```
 
 ### Using stdin for longer prompts
 
 ```sh
+cat README.md | netero Summarize the project README
 cat README.md | netero "Summarize the project README"
 ```
 
@@ -87,36 +109,62 @@ cat README.md | netero "Summarize the project README"
 netero commit | git commit -F - --edit
 ```
 
+### Generate shell completion
+
+```sh
+netero completion bash
+```
+
 ### Using a custom provider
 
 ```sh
 export NETERO_URL="https://api.example.com/v1/chat/completions"
 export NETERO_MODEL="my-model"
 export NETERO_API_KEY="your-api-key"
-netero "Explain how systemd manages services"
+netero Explain how systemd manages services
 ```
 
 ### Verbose output
 
 ```sh
+netero -v Explain the Rust ownership model
 netero -v "Explain the Rust ownership model"
+```
+
+### Run inline commands inside chat
+
+```sh
+netero chat
+# then type:
+Summarize this directory: $(ls -la)
+```
+
+### Chat commands
+
+```sh
+netero chat
+# then type:
+/help
+/eval 2 + 2 * 5
+/trans This is a test
+/clean
 ```
 
 ### Process a man page
 
 ```sh
-man tmux | netero "How can I split a tmux window?"
+man tmux | netero How can I split a tmux window?
 ```
 
 ### Analyze command output
 
 ```sh
-ps aux | netero "Which processes are consuming the most resources?"
+ps aux | netero Which processes are consuming the most resources?
 ```
 
 ### Pipe output to another command
 ```sh
-ss -tulpen | netero "Summarize active listening sockets" | mdless
+ss -tulpen | netero Summarize active listening sockets | glow -p
 ```
 
 ## License
