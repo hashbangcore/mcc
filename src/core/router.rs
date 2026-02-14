@@ -1,5 +1,5 @@
-use crate::core::{Cli, Config};
 use crate::core::trace::send_trace;
+use crate::core::{Cli, Config};
 
 use reqwest::Client;
 use serde::{Deserialize, Serialize};

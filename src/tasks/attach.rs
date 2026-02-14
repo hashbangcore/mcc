@@ -1,5 +1,5 @@
-use std::fs;
 use std::env;
+use std::fs;
 
 /// File attachment extracted from user input.
 pub struct Attachment {
@@ -81,9 +81,7 @@ pub fn split_args(input: &str) -> Vec<String> {
 }
 
 /// Extracts file attachments from tokenized input.
-pub fn extract_attachments_from_tokens(
-    tokens: &[String],
-) -> (Vec<String>, Vec<Attachment>) {
+pub fn extract_attachments_from_tokens(tokens: &[String]) -> (Vec<String>, Vec<Attachment>) {
     let mut remaining = Vec::new();
     let mut attachments = Vec::new();
 
@@ -158,10 +156,7 @@ fn indent_block(content: &str, prefix: &str) -> String {
 }
 
 /// Formats stdin and file attachments into a single attached files block.
-pub fn format_attached_files(
-    stdin: Option<&str>,
-    attachments: &[Attachment],
-) -> Option<String> {
+pub fn format_attached_files(stdin: Option<&str>, attachments: &[Attachment]) -> Option<String> {
     let mut sections = Vec::new();
     if let Some(content) = stdin {
         if !content.trim().is_empty() {

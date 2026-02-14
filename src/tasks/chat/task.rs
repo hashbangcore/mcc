@@ -6,8 +6,8 @@ use crate::utils;
 use super::commands::{
     handle_add, handle_clean, handle_eval, handle_help, handle_save, handle_stream, handle_trans,
 };
-use super::input::{new_editor, open_tty_reader, read_user_input};
 use super::inline_exec::run_inline_commands;
+use super::input::{new_editor, open_tty_reader, read_user_input};
 use super::parse::strip_inline_commands;
 use super::prompt::create_prompt;
 use super::stream::stream_completion;
@@ -92,8 +92,7 @@ pub async fn generate_chat(
         let dialog = history.join("\n");
         let command_output = run_inline_commands(&user_input);
         let cleaned_input = strip_inline_commands(&user_input);
-        let (cleaned_input, attachments) =
-            attach::extract_attachments_from_input(&cleaned_input);
+        let (cleaned_input, attachments) = attach::extract_attachments_from_input(&cleaned_input);
         let attachment_block = attach::format_attachments(&attachments);
         let mut merged_stdin = String::new();
         if let Some(existing) = pending_stdin.as_deref() {

@@ -174,11 +174,7 @@ fn is_inside_inline(input: &str, start: usize) -> bool {
     true
 }
 
-fn first_inline_token<'a>(
-    input: &'a str,
-    start: usize,
-    end: usize,
-) -> Option<(&'a str, usize)> {
+fn first_inline_token<'a>(input: &'a str, start: usize, end: usize) -> Option<(&'a str, usize)> {
     let slice = &input[start..end];
     let trimmed = slice.trim_start();
     let leading_ws = slice.len() - trimmed.len();

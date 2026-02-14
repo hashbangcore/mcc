@@ -1,7 +1,7 @@
-use std::path::{Path, PathBuf};
 use std::io::Write;
-use tokio::net::UnixDatagram;
+use std::path::{Path, PathBuf};
 use terminal_size::terminal_size;
+use tokio::net::UnixDatagram;
 
 const DEFAULT_TRACE_SOCKET_PATH: &str = "/tmp/netero.trace.sock";
 
@@ -24,9 +24,7 @@ fn resolve_trace_socket_path() -> PathBuf {
 }
 
 fn separator_line() -> String {
-    let width = terminal_size()
-        .map(|(w, _)| w.0 as usize)
-        .unwrap_or(80);
+    let width = terminal_size().map(|(w, _)| w.0 as usize).unwrap_or(80);
     let count = width.saturating_sub(1);
     ".".repeat(count) + "\n"
 }
