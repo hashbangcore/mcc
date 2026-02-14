@@ -1081,6 +1081,7 @@ dependencies = [
  "serde",
  "serde_json",
  "termimad",
+ "terminal_size",
  "tokio",
 ]
 
@@ -1781,6 +1782,16 @@ dependencies = [
  "serde",
  "thiserror 2.0.18",
  "unicode-width 0.1.14",
+]
+
+[[package]]
+name = "terminal_size"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "60b8cb979cb11c32ce1603f8137b22262a9d131aaa5c37b5678025f22b8becd0"
+dependencies = [
+ "rustix",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
