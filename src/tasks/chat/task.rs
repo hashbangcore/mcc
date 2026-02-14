@@ -4,7 +4,7 @@ use futures_util::StreamExt;
 use rustyline::Context;
 use rustyline::Editor;
 use rustyline::Helper;
-use rustyline::completion::{Completer, Pair};
+use rustyline::completion::{Completer, FilenameCompleter, Pair};
 use rustyline::error::ReadlineError;
 use rustyline::highlight::Highlighter;
 use rustyline::hint::Hinter;
@@ -21,11 +21,12 @@ use super::helpers::extract_inline_commands;
 use super::helpers::format_eval_error;
 use super::helpers::strip_inline_commands;
 
-#[derive(Clone)]
 /// Provides command name completions for slash-prefixed commands in the prompt.
 struct CommandCompleter {
     /// The set of slash commands available for completion.
     commands: Vec<&'static str>,
+    /// Filename completer for /add paths.
+    file_completer: FilenameCompleter,
 }
 
 /// Enables rustyline helper integration for slash command completion.
@@ -57,6 +58,9 @@ impl Completer for CommandCompleter {
         pos: usize,
         _ctx: &Context<'_>,
     ) -> Result<(usize, Vec<Pair>), ReadlineError> {
+        if line.starts_with("/add ") && pos >= 5 {
+            return self.file_completer.complete(line, pos, _ctx);
+        }
         let start = line[..pos]
             .rfind(|c: char| c.is_whitespace())
             .map(|idx| idx + 1)
@@ -79,6 +83,44 @@ impl Completer for CommandCompleter {
 
         Ok((start, matches))
     }
+}
+
+fn split_args(input: &str) -> Vec<String> {
+    let mut args = Vec::new();
+    let mut current = String::new();
+    let mut quote: Option<char> = None;
+
+    for ch in input.chars() {
+        if let Some(q) = quote {
+            if ch == q {
+                quote = None;
+            } else {
+                current.push(ch);
+            }
+            continue;
+        }
+
+        if ch == '"' || ch == '\'' {
+            quote = Some(ch);
+            continue;
+        }
+
+        if ch.is_whitespace() {
+            if !current.is_empty() {
+                args.push(current.clone());
+                current.clear();
+            }
+            continue;
+        }
+
+        current.push(ch);
+    }
+
+    if !current.is_empty() {
+        args.push(current);
+    }
+
+    args
 }
 
 /// Executes inline shell commands and returns a formatted output section, if any.
@@ -213,6 +255,7 @@ pub async fn generate_chat(
         .expect("failed to initialize rustyline editor");
     rl.set_helper(Some(CommandCompleter {
         commands: vec!["/clean", "/trans", "/eval", "/help", "/stream", "/add"],
+        file_completer: FilenameCompleter::new(),
     }));
     let mut tty_reader = if stdin_is_piped {
         match File::open("/dev/tty") {
@@ -295,27 +338,32 @@ pub async fn generate_chat(
         }
 
         if let Some(rest) = user_input.strip_prefix("/add") {
-            let mut path = rest.trim();
-            if (path.starts_with('"') && path.ends_with('"'))
-                || (path.starts_with('\'') && path.ends_with('\''))
-            {
-                path = &path[1..path.len().saturating_sub(1)];
-            }
-
-            if path.is_empty() {
-                println!("\nUsage: /add <path>");
+            let args = split_args(rest.trim());
+            if args.is_empty() {
+                println!("\nUsage: /add <path> [path2 path3 ...]");
                 continue;
             }
 
-            match fs::read_to_string(path) {
-                Ok(content) => {
-                    pending_stdin = Some(content.clone());
-                    history.push(format!("Attachment: {}\n", content));
-                    println!("\nadded: {}", path);
+            let mut attachment = String::new();
+            for path in args {
+                match fs::read_to_string(&path) {
+                    Ok(content) => {
+                        attachment.push_str("\n-- FILE: ");
+                        attachment.push_str(&path);
+                        attachment.push_str(" --\n");
+                        attachment.push_str(&content);
+                        attachment.push('\n');
+                        history.push(format!("Attachment: {}\n{}\n", path, content));
+                        println!("\nadded: {}", path);
+                    }
+                    Err(err) => {
+                        eprintln!("\nError reading {}: {}", path, err);
+                    }
                 }
-                Err(err) => {
-                    eprintln!("\nError reading {}: {}", path, err);
-                }
+            }
+
+            if !attachment.is_empty() {
+                pending_stdin = Some(attachment);
             }
             continue;
         }
