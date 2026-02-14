@@ -21,6 +21,7 @@ const HELP_TEXT: &str = "\nCommands:\n\
 /add   Attach file contents to chat context\n\
 /trans Translate text (uses LLM)\n\
 /eval  Evaluate arithmetic expression\n\
+/save  Save an informe about the chat\n\
 /stream [on|off] Toggle streaming output\n";
 
 /// Provides command name completions for slash-prefixed commands in the prompt.
@@ -243,6 +244,65 @@ TEXT:
             Ok(true)
         }
         Err(err) => Err(format!("AI error: {}", err)),
+    }
+}
+
+pub async fn handle_save(
+    user_input: &str,
+    service: &core::Service,
+    args: &core::Cli,
+    history: &[String],
+) -> Result<bool, String> {
+    let Some(rest) = user_input.strip_prefix("/save") else {
+        return Ok(false);
+    };
+    let raw_text = strip_inline_commands(rest).trim().to_string();
+
+    let datetime = utils::current_datetime();
+    let user_lang = utils::get_user_lang();
+    let history_text = history.join("\n");
+    let hint_line = if raw_text.is_empty() {
+        "Hint: (none)".to_string()
+    } else {
+        format!("Hint (required): {raw_text}")
+    };
+
+    let prompt = format!(
+        "Write an informe for the user.\n\
+{hint_line}\n\
+If a Hint is present, it is mandatory and should override other topics.\n\
+Use the same language as the user.\n\
+User language: {user_lang}\n\
+Do not add footers, notes, or meta commentary.\n\
+Chat history:\n\
+{history_text}\n"
+    );
+
+    if args.verbose {
+        println!("\x1b[32m{}\x1b[0m", prompt);
+    }
+
+    let result = match service.complete(&prompt).await {
+        Ok(text) => text,
+        Err(err) => return Err(format!("AI error: {}", err)),
+    };
+
+    let output = result.trim_end().to_string();
+    let safe_datetime = datetime.replace(' ', ".").replace(':', "_");
+    let filename = format!("netero.{}.md", safe_datetime);
+    let path = filename.as_str();
+    let write_result = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+        .and_then(|mut file| std::io::Write::write_all(&mut file, output.as_bytes()));
+
+    match write_result {
+        Ok(()) => {
+            println!("\nsaved: {}", path);
+            Ok(true)
+        }
+        Err(err) => Err(format!("File error: {}", err)),
     }
 }
 

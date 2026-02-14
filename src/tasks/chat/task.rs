@@ -3,7 +3,7 @@ use crate::tasks::render;
 use crate::utils;
 
 use super::commands::{
-    handle_add, handle_clean, handle_eval, handle_help, handle_stream, handle_trans,
+    handle_add, handle_clean, handle_eval, handle_help, handle_save, handle_stream, handle_trans,
 };
 use super::input::{new_editor, open_tty_reader, read_user_input};
 use super::inline_exec::run_inline_commands;
@@ -66,6 +66,15 @@ pub async fn generate_chat(
         }
 
         match handle_trans(&user_input, service, args).await {
+            Ok(true) => continue,
+            Ok(false) => {}
+            Err(err) => {
+                eprintln!("{}", err);
+                break;
+            }
+        }
+
+        match handle_save(&user_input, service, args, &history).await {
             Ok(true) => continue,
             Ok(false) => {}
             Err(err) => {
