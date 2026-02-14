@@ -308,21 +308,64 @@ pub async fn generate_chat(
         }
 
         if let Some(rest) = user_input.strip_prefix("/trans") {
-            let text = strip_inline_commands(rest).trim().to_string();
+            let raw_text = strip_inline_commands(rest).trim().to_string();
+            if raw_text.is_empty() {
+                continue;
+            }
+
+            let mut input_lang: Option<String> = None;
+            let mut output_lang: Option<String> = None;
+            let mut text = raw_text.as_str();
+
+            let mut parts = raw_text.splitn(2, char::is_whitespace);
+            let first = parts.next().unwrap_or("");
+            if first.contains(':')
+                && first
+                    .chars()
+                    .all(|ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '-' || ch == ':')
+            {
+                let mut lang_parts = first.splitn(2, ':');
+                let in_lang = lang_parts.next().unwrap_or("").trim();
+                let out_lang = lang_parts.next().unwrap_or("").trim();
+                if !in_lang.is_empty() {
+                    input_lang = Some(in_lang.to_string());
+                }
+                if !out_lang.is_empty() {
+                    output_lang = Some(out_lang.to_string());
+                }
+                if input_lang.is_some() || output_lang.is_some() {
+                    text = parts.next().unwrap_or("").trim();
+                }
+            }
+
             if text.is_empty() {
                 continue;
             }
 
+            let user_lang = utils::normalize_lang_tag(&utils::get_user_lang());
+            let target_lang = output_lang
+                .as_deref()
+                .map(utils::normalize_lang_tag)
+                .unwrap_or(user_lang);
+            let source_lang = input_lang
+                .as_deref()
+                .map(utils::normalize_lang_tag)
+                .unwrap_or_else(|| "auto-detect".to_string());
+            let target_lang_name = utils::lang_display_name(&target_lang);
+
             let prompt = format!(
                 "
 Task: Translate the following text faithfully, preserving its meaning and context.
-Do not explain or add anything. Return only the translation.When 
-processing text, recognize and handle the lang:lang syntax (e.g., :en for English) 
-as a directive for language specification. 
-Ensure responses adhere to the language indicated by the directive. 
-If no directive is provided, default to the user's preferred language . 
-Do not interpret lang:lang as literal text.\n\nTEXT:\n{}",
-                text
+Return only the translation. Do not explain or add anything.
+You must translate. Do not choose any other task or language.
+LANG: {}:{}.
+Source language (locked): {}.
+Target language (locked): {}.
+Target language name (locked): {}.
+
+TEXT:
+{}",
+                source_lang, target_lang, source_lang, target_lang, target_lang_name, text
             );
 
             if args.verbose {
