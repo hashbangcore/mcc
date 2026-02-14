@@ -77,7 +77,7 @@ impl Service {
     }
 
     pub async fn complete(&self, content: &str) -> Result<String, Box<dyn std::error::Error>> {
-        send_log("== REQUEST ==", content).await;
+        send_log(":: REQUEST ::", content).await;
 
         let body = ChatRequest {
             model: self.model.clone(),
@@ -103,7 +103,7 @@ impl Service {
             .content
             .clone();
 
-        send_log("== RESPONSE ==", &content).await;
+        send_log(":: RESPONSE ::", &content).await;
 
         Ok(content)
     }
