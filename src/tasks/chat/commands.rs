@@ -30,6 +30,10 @@ pub struct CommandCompleter {
     commands: Vec<&'static str>,
     /// Filename completer for /add paths.
     file_completer: FilenameCompleter,
+    /// Common command names for #!(...) completion.
+    inline_commands: Vec<&'static str>,
+    /// Common git subcommands for #!(git ...) completion.
+    git_subcommands: Vec<&'static str>,
 }
 
 impl CommandCompleter {
@@ -37,6 +41,13 @@ impl CommandCompleter {
         Self {
             commands,
             file_completer: FilenameCompleter::new(),
+            inline_commands: vec![
+                "ls", "cat", "rg", "git", "pwd", "grep", "sed", "awk", "head", "tail",
+            ],
+            git_subcommands: vec![
+                "status", "add", "commit", "push", "pull", "fetch", "log", "diff", "show",
+                "branch", "checkout", "switch", "merge", "rebase", "stash", "reset", "restore",
+            ],
         }
     }
 }
@@ -81,6 +92,49 @@ impl Completer for CommandCompleter {
         if token.starts_with("./") || token.starts_with("../") || token.starts_with('/') {
             return self.file_completer.complete(line, pos, ctx);
         }
+        if let Some(inline_start) = find_inline_start(&line[..pos]) {
+            if is_inside_inline(&line[..pos], inline_start) {
+                let inline_slice = &line[inline_start..pos];
+                let token_start = inline_slice
+                    .rfind(|c: char| c.is_whitespace())
+                    .map(|idx| inline_start + idx + 1)
+                    .unwrap_or(inline_start);
+                let inline_token = &line[token_start..pos];
+                if inline_token.starts_with("./")
+                    || inline_token.starts_with("../")
+                    || inline_token.starts_with('/')
+                    || inline_token.starts_with("~/")
+                {
+                    return self.file_completer.complete(line, pos, ctx);
+                }
+                if token_start == inline_start {
+                    let matches = self
+                        .inline_commands
+                        .iter()
+                        .filter(|cmd| cmd.starts_with(inline_token))
+                        .map(|cmd| Pair {
+                            display: cmd.to_string(),
+                            replacement: cmd.to_string(),
+                        })
+                        .collect();
+                    return Ok((token_start, matches));
+                }
+                if let Some((first, first_end)) = first_inline_token(line, inline_start, pos) {
+                    if first == "git" && token_start > first_end {
+                        let matches = self
+                            .git_subcommands
+                            .iter()
+                            .filter(|cmd| cmd.starts_with(inline_token))
+                            .map(|cmd| Pair {
+                                display: cmd.to_string(),
+                                replacement: cmd.to_string(),
+                            })
+                            .collect();
+                        return Ok((token_start, matches));
+                    }
+                }
+            }
+        }
         let prefix = &line[start..pos];
 
         if !prefix.starts_with('/') {
@@ -99,6 +153,40 @@ impl Completer for CommandCompleter {
 
         Ok((start, matches))
     }
+}
+
+fn find_inline_start(input: &str) -> Option<usize> {
+    input.rfind("#!(").map(|idx| idx + 3)
+}
+
+fn is_inside_inline(input: &str, start: usize) -> bool {
+    let mut depth = 1;
+    for ch in input[start..].chars() {
+        if ch == '(' {
+            depth += 1;
+        } else if ch == ')' {
+            depth -= 1;
+            if depth == 0 {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+fn first_inline_token<'a>(
+    input: &'a str,
+    start: usize,
+    end: usize,
+) -> Option<(&'a str, usize)> {
+    let slice = &input[start..end];
+    let trimmed = slice.trim_start();
+    let leading_ws = slice.len() - trimmed.len();
+    let token_start = start + leading_ws;
+    let mut iter = trimmed.split_whitespace();
+    let first = iter.next()?;
+    let first_end = token_start + first.len();
+    Some((first, first_end))
 }
 
 pub fn handle_help(user_input: &str) -> bool {
