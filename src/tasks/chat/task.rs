@@ -465,6 +465,7 @@ TEXT:
         if let Some(rest) = user_input.strip_prefix("/eval") {
             let expr = strip_inline_commands(rest).trim().to_string();
             if expr.is_empty() {
+                println!("\nUsage: /eval <expression>");
                 continue;
             }
 
