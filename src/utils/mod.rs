@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 pub mod env;
 pub mod io;
 pub mod strings;
