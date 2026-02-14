@@ -39,7 +39,8 @@ Uso: netero [OPCIONES] [PROMPT] [COMANDO]
 ```
 
 Si hay entrada por `stdin`, se agrega como contexto extra.
-Las expresiones `$(...)` se ejecutan en tu shell y su salida se añade al prompt.
+Las expresiones `#!(...)` se ejecutan en tu shell y su salida se añade al prompt.
+Si el prompt contiene rutas de archivo (`./`, `../`, `/` o `~/`), se adjuntan al contexto.
 
 ### Comandos
 
@@ -63,11 +64,20 @@ Las expresiones `$(...)` se ejecutan en tu shell y su salida se añade al prompt
 * `/clean`
   Limpia el historial del chat
 
+* `/add`
+  Adjunta archivos al contexto
+
 * `/trans`
   Traduce texto
 
 * `/eval`
   Evalúa una expresión aritmética
+
+* `/save`
+  Guarda un informe del chat
+
+* `/stream`
+  Activa o desactiva el streaming
 
 ### Argumentos
 
@@ -78,6 +88,9 @@ Las expresiones `$(...)` se ejecutan en tu shell y su salida se añade al prompt
 
 * `-v, --verbose`
   Habilita la salida detallada
+
+* `-t, --trace`
+  Inicia el servidor de trazas para ver el tráfico crudo
 
 * `-h, --help`
   Muestra la ayuda
@@ -109,6 +122,13 @@ cat README.md | netero "Resume este README"
 netero commit | git commit -F - --edit
 ```
 
+### Convención de commit personalizada
+
+```sh
+netero commit -c .repo/convencion.txt
+netero commit -c .repo/convencion.txt que sea de tipo service
+```
+
 ### Generar autocompletado para el shell
 
 ```sh
@@ -136,8 +156,13 @@ netero -v "¿Qué es Docker?"
 ```sh
 netero chat
 # luego escribe:
-Resume este directorio: $(ls -la)
+Resume este directorio: #!(ls -la)
 ```
+
+Autocompletado dentro de `#!(...)`:
+- Comandos: `ls`, `cat`, `rg`, `git`, `pwd`, `grep`, `sed`, `awk`, `head`, `tail`
+- Si el primer comando es `git`, sugiere subcomandos comunes
+- También completa rutas que empiezan con `./`, `../`, `/` o `~/`
 
 ### Comandos del chat
 
@@ -148,6 +173,7 @@ netero chat
 /eval 2 + 2 * 5
 /trans This is a test
 /clean
+/save resumen de la sesión
 ```
 
 ### Procesar una página de manual
