@@ -1,4 +1,5 @@
 use crate::core;
+use crate::tasks::attach;
 use crate::tasks::render;
 use crate::utils;
 
@@ -91,6 +92,21 @@ pub async fn generate_chat(
         let dialog = history.join("\n");
         let command_output = run_inline_commands(&user_input);
         let cleaned_input = strip_inline_commands(&user_input);
+        let (cleaned_input, attachments) =
+            attach::extract_attachments_from_input(&cleaned_input);
+        let attachment_block = attach::format_attachments(&attachments);
+        let mut merged_stdin = String::new();
+        if let Some(existing) = pending_stdin.as_deref() {
+            merged_stdin.push_str(existing);
+        }
+        if let Some(extra) = attachment_block.as_deref() {
+            merged_stdin.push_str(extra);
+        }
+        let merged_stdin = if merged_stdin.is_empty() {
+            None
+        } else {
+            Some(merged_stdin)
+        };
         let prompt = create_prompt(
             &utils::get_user(),
             &utils::current_datetime(),
@@ -98,7 +114,7 @@ pub async fn generate_chat(
             &dialog,
             &cleaned_input,
             command_output.as_deref(),
-            pending_stdin.as_deref(),
+            merged_stdin.as_deref(),
         );
         if pending_stdin.is_some() {
             pending_stdin = None;

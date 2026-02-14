@@ -2,6 +2,7 @@
 mod config;
 /// CLI argument definitions.
 pub mod interface;
+pub mod theme;
 /// Trace server for raw LLM traffic.
 pub mod trace;
 mod router;

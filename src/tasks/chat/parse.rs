@@ -74,13 +74,25 @@ pub fn strip_inline_commands(input: &str) -> String {
     output.trim().to_string()
 }
 
-/// Splits a command line into arguments, honoring single and double quotes.
+/// Splits a command line into arguments, honoring quotes and backslash escapes.
 pub fn split_args(input: &str) -> Vec<String> {
     let mut args = Vec::new();
     let mut current = String::new();
     let mut quote: Option<char> = None;
+    let mut escape = false;
 
     for ch in input.chars() {
+        if escape {
+            current.push(ch);
+            escape = false;
+            continue;
+        }
+
+        if ch == '\\' && quote != Some('\'') {
+            escape = true;
+            continue;
+        }
+
         if let Some(q) = quote {
             if ch == q {
                 quote = None;

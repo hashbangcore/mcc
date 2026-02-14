@@ -1,4 +1,5 @@
 use crate::core;
+use crate::tasks::attach;
 use crate::tasks::render;
 use crate::utils;
 
@@ -10,16 +11,24 @@ pub async fn generate_message(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let user = utils::get_user();
     let datetime = utils::current_datetime();
+    let (cleaned_request, attachments) = attach::extract_attachments_from_input(request);
+    let attachment_block = attach::format_attachments(&attachments);
 
     let preamble = format!("LLM name: Netero\nUser name: {}\nDate and hour: {}", user, datetime);
 
-    let prompt = if stdin.trim().is_empty() {
-        format!("User request:\n{}", request.trim())
+    let stdin_with_files = if let Some(extra) = attachment_block.as_deref() {
+        format!("{stdin}{extra}")
+    } else {
+        stdin
+    };
+
+    let prompt = if stdin_with_files.trim().is_empty() {
+        format!("User request:\n{}", cleaned_request.trim())
     } else {
         format!(
             "== USER REQUEST ==\n{}\n== END USER REQUEST ==\n== STDIN FILE ==\n{}\n== END STDIN FILE ==",
-            request.trim(),
-            stdin,
+            cleaned_request.trim(),
+            stdin_with_files,
         )
     };
 

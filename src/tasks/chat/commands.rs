@@ -77,6 +77,10 @@ impl Completer for CommandCompleter {
             .rfind(|c: char| c.is_whitespace())
             .map(|idx| idx + 1)
             .unwrap_or(0);
+        let token = &line[start..pos];
+        if token.starts_with("./") || token.starts_with("../") || token.starts_with('/') {
+            return self.file_completer.complete(line, pos, ctx);
+        }
         let prefix = &line[start..pos];
 
         if !prefix.starts_with('/') {
