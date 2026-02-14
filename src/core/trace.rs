@@ -4,6 +4,7 @@ use tokio::net::UnixDatagram;
 pub const TRACE_SOCKET_PATH: &str = "/tmp/netero.trace.sock";
 
 pub async fn run_trace_server() -> Result<(), Box<dyn std::error::Error>> {
+    // Replace old socket if it exists.
     if Path::new(TRACE_SOCKET_PATH).exists() {
         std::fs::remove_file(TRACE_SOCKET_PATH)?;
     }

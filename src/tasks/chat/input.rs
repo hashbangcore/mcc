@@ -33,6 +33,7 @@ pub fn read_user_input(
     tty_reader: &mut Option<BufReader<File>>,
 ) -> Result<Option<String>, String> {
     if let Some(reader) = tty_reader.as_mut() {
+        // TTY mode uses a manual prompt to keep colors consistent.
         let mut stdout = std::io::stdout();
         stdout
             .write_all(b"\x1b[36m\xE2\x9E\x9C ")
@@ -56,6 +57,7 @@ pub fn read_user_input(
         let readline = rl.readline("➜ ");
         let user_input = match readline {
             Ok(line) => {
+                // Keep history for Up/Down navigation.
                 rl.add_history_entry(line.as_str())
                     .map_err(|_| "Error adding history".to_string())?;
                 line.trim().to_string()

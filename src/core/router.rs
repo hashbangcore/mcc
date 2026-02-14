@@ -55,6 +55,7 @@ impl Service {
     }
 
     pub async fn complete(&self, content: &str) -> Result<String, Box<dyn std::error::Error>> {
+        // Send request/response to the trace server when enabled.
         send_trace(":: REQUEST ::", content).await;
 
         let body = ChatRequest {
@@ -73,6 +74,7 @@ impl Service {
 
         let response = req.send().await?.json::<ChatResponse>().await?;
 
+        // Extract the first assistant message from the response.
         let content = response
             .choices
             .get(0)

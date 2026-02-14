@@ -26,6 +26,7 @@ pub async fn generate_chat(
     };
     let mut stream_enabled = false;
     let mut rl = new_editor();
+    // When stdin is piped, read user input from TTY so the chat stays interactive.
     let mut tty_reader = match open_tty_reader(stdin_is_piped) {
         Ok(reader) => reader,
         Err(err) => {
@@ -77,6 +78,7 @@ pub async fn generate_chat(
             continue;
         }
 
+        // Build the prompt with history, inline command output, and attachments.
         let dialog = history.join("\n");
         let command_output = run_inline_commands(&user_input);
         let cleaned_input = strip_inline_commands(&user_input);
@@ -97,6 +99,7 @@ pub async fn generate_chat(
             println!("\x1b[32m{}\x1b[0m", prompt);
         }
 
+        // Use streaming mode when enabled by the user.
         let response = if stream_enabled {
             match stream_completion(service, &prompt).await {
                 Ok(text) => text,
@@ -119,6 +122,7 @@ pub async fn generate_chat(
             }
         };
 
+        // Store the last exchange for future context.
         history.push(format!("{}: {}", utils::get_user(), cleaned_input));
         history.push(format!("Assistant: {}\n", response));
     }

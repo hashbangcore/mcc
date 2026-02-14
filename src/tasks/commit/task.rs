@@ -5,6 +5,7 @@ use super::git::staged_changes;
 use super::prompts::{convention, instruction, skeleton};
 
 fn generate(hint: Option<&str>) -> String {
+    // Build a single prompt with all required sections.
     let user_hint = hint.unwrap_or("");
 
     let context = "repository context";

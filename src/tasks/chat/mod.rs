@@ -1,3 +1,4 @@
+//! Chat task implementation and helpers.
 mod commands;
 mod eval;
 mod inline_exec;

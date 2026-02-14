@@ -1,3 +1,4 @@
+//! Commit message generation task and helpers.
 mod format;
 mod git;
 mod prompts;

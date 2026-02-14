@@ -11,6 +11,7 @@ pub struct Config {
 impl Config {
     /// Loads configuration from environment variables with sensible defaults.
     pub fn from_env(args: &Cli) -> Self {
+        // Read env vars only once to keep behavior consistent.
         let url = std::env::var("NETERO_URL")
             .ok()
             .filter(|v| !v.trim().is_empty());
