@@ -18,6 +18,10 @@ pub struct Cli {
     /// Enable verbose output
     #[arg(short, long, global = true)]
     pub verbose: bool,
+
+    /// Start log server to print raw LLM traffic
+    #[arg(long, global = true)]
+    pub log: bool,
 }
 
 #[derive(Subcommand, Debug)]

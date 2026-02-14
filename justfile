@@ -4,10 +4,10 @@ set unstable := true
 default: test
 
 error:
-  cargo run --bin netero -- "hi" > error.txt 2>&1
+    cargo run --bin netero -- "hi" > error.txt 2>&1
 
 commit hint="":
-  netero commit "{{ hint }}" | git commit -F - --edit
+    netero commit "{{ hint }}" | git commit -F - --edit
 
 chat:
     cargo run --bin netero -- chat
@@ -35,5 +35,8 @@ test-envrc hint="¿Cual es tu nombre?":
 show:
     find src -type f -exec sh -c 'for f; do echo "--- $f ---"; cat "$f"; done' sh {} + | larry "tree -I 'docs|target'" 
 
+panel-log:
+    cargo run --bin netero -- --log
 
-
+panel-chat:
+    cargo run --bin netero -- chat

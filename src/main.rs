@@ -14,6 +14,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let stdin_is_piped = utils::stdin_is_piped();
     let stdin = utils::get_stdin();
     let args = core::Cli::parse();
+
+    if args.log {
+        core::log::run_log_server().await?;
+        return Ok(());
+    }
+
     let service = core::Service::new(&args);
 
     execute(&service, &args, stdin, stdin_is_piped).await?;

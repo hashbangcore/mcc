@@ -1,4 +1,5 @@
 use crate::core::Cli;
+use crate::core::log::send_log;
 
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -76,6 +77,8 @@ impl Service {
     }
 
     pub async fn complete(&self, content: &str) -> Result<String, Box<dyn std::error::Error>> {
+        send_log("== REQUEST ==", content).await;
+
         let body = ChatRequest {
             model: self.model.clone(),
             messages: vec![Message {
@@ -99,6 +102,8 @@ impl Service {
             .message
             .content
             .clone();
+
+        send_log("== RESPONSE ==", &content).await;
 
         Ok(content)
     }
