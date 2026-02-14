@@ -1,4 +1,5 @@
 use crate::core;
+use crate::tasks::render;
 use crate::utils;
 use rustyline::Context;
 use rustyline::Helper;
@@ -11,6 +12,7 @@ use std::fs;
 use std::io::Write;
 
 use super::eval::{eval_expr, format_eval_error};
+use super::lang::{lang_display_name, normalize_lang_tag};
 use super::parse::{split_args, strip_inline_commands};
 
 const HELP_TEXT: &str = "\nCommands:\n\
@@ -204,16 +206,16 @@ pub async fn handle_trans(
         return Ok(true);
     }
 
-    let user_lang = utils::normalize_lang_tag(&utils::get_user_lang());
+    let user_lang = normalize_lang_tag(&utils::get_user_lang());
     let target_lang = output_lang
         .as_deref()
-        .map(utils::normalize_lang_tag)
+        .map(normalize_lang_tag)
         .unwrap_or(user_lang);
     let source_lang = input_lang
         .as_deref()
-        .map(utils::normalize_lang_tag)
+        .map(normalize_lang_tag)
         .unwrap_or_else(|| "auto-detect".to_string());
-    let target_lang_name = utils::lang_display_name(&target_lang);
+    let target_lang_name = lang_display_name(&target_lang);
 
     let prompt = format!(
         "
@@ -236,7 +238,7 @@ TEXT:
 
     match service.complete(&prompt).await {
         Ok(text) => {
-            let output = utils::render_markdown(&text);
+            let output = render::render_markdown(&text);
             println!("\n{}", output);
             Ok(true)
         }

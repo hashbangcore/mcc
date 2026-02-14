@@ -1,4 +1,5 @@
 use crate::core;
+use crate::tasks::render;
 use crate::utils;
 use futures_util::StreamExt;
 use rustyline::Editor;
@@ -269,7 +270,7 @@ pub async fn generate_chat(
         } else {
             match service.complete(&prompt).await {
                 Ok(text) => {
-                    let output = utils::render_markdown(&text);
+                    let output = render::render_markdown(&text);
                     println!("\n{}", output);
                     text
                 }
