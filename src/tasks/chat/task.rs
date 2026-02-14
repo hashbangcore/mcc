@@ -155,7 +155,7 @@ async fn stream_completion(
         req = req.header("Authorization", format!("Bearer {}", key));
     }
 
-    let mut response = req.send().await?;
+    let response = req.send().await?;
     let mut stream = response.bytes_stream();
     let mut content = String::new();
     let mut stdout = std::io::stdout();
