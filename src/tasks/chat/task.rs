@@ -1,135 +1,20 @@
 use crate::core;
 use crate::tasks::render;
 use crate::utils;
-use futures_util::StreamExt;
 use rustyline::Editor;
 use rustyline::error::ReadlineError;
 use rustyline::history::DefaultHistory;
-use serde_json::json;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
-use std::process::Command;
 
 use super::commands::{
     CommandCompleter, handle_add, handle_clean, handle_eval, handle_help, handle_stream,
     handle_trans,
 };
-use super::parse::{extract_inline_commands, strip_inline_commands};
+use super::inline_exec::run_inline_commands;
+use super::parse::strip_inline_commands;
 use super::prompt::create_prompt;
-
-/// Executes inline shell commands and returns a formatted output section, if any.
-fn run_inline_commands(user_input: &str) -> Option<String> {
-    let commands = extract_inline_commands(user_input);
-    if commands.is_empty() {
-        return None;
-    }
-
-    let mut entries = Vec::new();
-
-    for cmd in commands {
-        let output = Command::new("bash").args(["-lc", &cmd]).output();
-
-        match output {
-            Ok(out) => {
-                let stdout = String::from_utf8_lossy(&out.stdout).trim_end().to_string();
-                let stderr = String::from_utf8_lossy(&out.stderr).trim_end().to_string();
-
-                if out.status.success() {
-                    let stdout_display = if stdout.is_empty() {
-                        "<empty>"
-                    } else {
-                        &stdout
-                    };
-                    entries.push(format!(
-                        "[section]\n[command]\n{}\n\n[stdout]\n{}\n[end section]",
-                        cmd, stdout_display
-                    ));
-                    if !stderr.is_empty() {
-                        entries.push(format!("[stderr]\n{}", stderr));
-                    }
-                } else {
-                    let stderr_display = if stderr.is_empty() {
-                        "<empty>"
-                    } else {
-                        &stderr
-                    };
-                    let stdout_display = if stdout.is_empty() {
-                        "<empty>"
-                    } else {
-                        &stdout
-                    };
-                    entries.push(format!(
-                        "$({})\n[exit status]\n{}\n[stderr]\n{}\n[stdout]\n{}",
-                        cmd, out.status, stderr_display, stdout_display
-                    ));
-                }
-            }
-            Err(err) => {
-                entries.push(format!("$({})\n[error]\n{}", cmd, err));
-            }
-        }
-    }
-
-    Some(entries.join("\n\n"))
-}
-
-async fn stream_completion(
-    service: &core::Service,
-    prompt: &str,
-) -> Result<String, Box<dyn std::error::Error>> {
-    let body = json!({
-        "model": service.model,
-        "messages": [
-            { "role": "user", "content": prompt }
-        ],
-        "stream": true
-    });
-
-    let mut req = service.http.post(&service.endpoint).json(&body);
-
-    if let Some(key) = &service.apikey {
-        req = req.header("Authorization", format!("Bearer {}", key));
-    }
-
-    let response = req.send().await?;
-    let mut stream = response.bytes_stream();
-    let mut content = String::new();
-    let mut stdout = std::io::stdout();
-
-    while let Some(item) = stream.next().await {
-        let chunk = item?;
-        let text = String::from_utf8_lossy(&chunk);
-
-        for line in text.lines() {
-            let line = line.trim();
-            if line.is_empty() {
-                continue;
-            }
-            let Some(data) = line.strip_prefix("data:") else {
-                continue;
-            };
-            let data = data.trim();
-            if data == "[DONE]" {
-                stdout.write_all(b"\n")?;
-                stdout.flush()?;
-                return Ok(content);
-            }
-            let parsed: serde_json::Value = serde_json::from_str(data)?;
-            let delta = parsed["choices"][0]["delta"]["content"]
-                .as_str()
-                .unwrap_or("");
-            if !delta.is_empty() {
-                content.push_str(delta);
-                stdout.write_all(delta.as_bytes())?;
-                stdout.flush()?;
-            }
-        }
-    }
-
-    stdout.write_all(b"\n")?;
-    stdout.flush()?;
-    Ok(content)
-}
+use super::stream::stream_completion;
 
 /// Starts the interactive chat session and handles all supported commands.
 pub async fn generate_chat(
