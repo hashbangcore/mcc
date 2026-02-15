@@ -1,7 +1,17 @@
-set fallback := true
+mod dist
+
 set unstable := true
 
-default: test
+default: install
+
+release-info:
+    just dist::info
+
+release-build:
+    just dist::build
+    just dist::artifacts
+    just dist::checksum
+    just dist::upload
 
 error:
     cargo run --bin netero -- "hi" > error.txt 2>&1
@@ -9,34 +19,16 @@ error:
 commit hint="":
     netero commit "{{ hint }}" | git commit -F - --edit
 
-chat:
-    cargo run --bin netero -- chat
-
 install:
     cargo install --path . --bin netero
 
 install-dev:
     cargo install --path . --bin netero-dev
 
-sync:
-    git switch default
-    git merge development
-    git switch development
-    git push --all
+test-envrc hint="true":
+    @direnv allow
+    direnv exec . cargo run --bin netero  -- -v  "{{ hint }}"
+    @direnv disallow
 
-test:
-    man yes | cargo run --bin netero-dev --quiet -- -v chat 
-
-test-envrc hint="¿Cual es tu nombre?":
-    direnv allow
-    direnv exec . cargo run --bin netero-dev --quiet -- -v "{{ hint }}"
-    direnv disallow
-
-show:
+show-code:
     find src -type f -exec sh -c 'for f; do echo "--- $f ---"; cat "$f"; done' sh {} + | larry "tree -I 'docs|target'" 
-
-panel-log:
-    cargo run --bin netero -- --log
-
-panel-chat:
-    cargo run --bin netero -- chat

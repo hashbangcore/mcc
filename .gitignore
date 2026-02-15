@@ -1,3 +1,5 @@
-/target/
 Session.vim
-/docs/scratch/
+dist/artifacts/
+docs/scratch/
+outputs/
+target/

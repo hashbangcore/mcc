@@ -1,0 +1,33 @@
+set unstable := true
+
+name := "netero"
+repo := "hashbangcore/netero"
+tag := "v" + version
+target := "x86_64-unknown-linux-gnu"
+version := `git describe --tags --always`
+
+build name=name target=target:
+    cargo build --bin {{ name }} --release {{ if target != "" { "--target " + target } else { "" } }}
+
+artifacts target=target name=name:
+    rm -rf ./artifacts
+    mkdir -p ./artifacts
+    cp ../target{{ if target != "" { "/" + target } else { "" } }}/release/netero ./artifacts
+    tar -czf ./artifacts/{{ name }}-{{ tag }}{{ if target != "" { "-" + target } else { "" } }}.tar.gz -C artifacts netero
+    rm -f ./artifacts/{{ name }}
+
+checksum:
+    sha256sum artifacts/*tar.gz > artifacts/SHA256SUMS
+
+upload:
+    gh release create {{ tag }} ./artifacts/*.tar.gz ./artifacts/SHA256SUMS \
+      --repo {{ repo }} \
+      --title "{{ name }} {{ version }}" \
+      --notes "Release {{ version }}"
+
+info:
+    @echo "project={{ name }}"
+    @echo "repo={{ repo }}"
+    @echo "version={{ version }}"
+    @echo "tag={{ tag }}"
+    @echo "target={{ target }}"

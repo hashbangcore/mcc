@@ -2,5 +2,15 @@
 command = "cargo"
 options = ["fmt", "--"]
 includes = [ "*.rs" ]
-excludes = []
-priority = 0
+
+[formatter.tasks]
+command = "just"
+options = ["--fmt", "-f"]
+includes = ["justfile"]
+
+[formatter.release]
+command = "just"
+options = ["--fmt", "-f"]
+includes = ["dist/justfile"]
+
+
